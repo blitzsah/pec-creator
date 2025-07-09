@@ -73,7 +73,9 @@
             </label>
         </div>
         <button onclick="generateJSON()">Generate JSON</button>
+        <button id="copyButton" onclick="copyToClipboard()" style="display:none;">Copy to Clipboard</button>
         <div id="output"></div>
+
     </div>
 
     <script>
@@ -83,6 +85,17 @@
             let seqNum = parseInt(prefixParts[prefixParts.length - 1]);
             let [bNum, tNum] = bPart.split('_').map(Number);
             return [prefixParts.slice(0, -1), seqNum, bNum, tNum];
+        }
+        
+        function copyToClipboard() {
+            const output = document.getElementById('output');
+            const textArea = document.createElement('textarea');
+            textArea.value = output.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('JSON copied to clipboard!');
         }
 
         function generateJSON() {
@@ -172,6 +185,7 @@
             }
 
             document.getElementById('output').textContent = JSON.stringify(result, null, 2);
+            document.getElementById('copyButton').style.display = 'inline-block';
         }
 
         // Add string prototype for rsplit functionality
