@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Generator UI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .checkbox-group {
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>JSON Generator</h2>
+        <div class="form-group">
+            <label for="numPecs">Number of PECs:</label>
+            <input type="number" id="numPecs" value="55">
+        </div>
+        <div class="form-group">
+            <label for="sourceId">Start Source ID:</label>
+            <input type="text" id="sourceId" value="PLC09/2210_06_01/B1018_0">
+        </div>
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" id="horizontal" checked> Horizontal
+            </label>
+            <br>
+            <label>
+                <input type="checkbox" id="up"> Up
+            </label>
+        </div>
+        <button onclick="generateJSON()">Generate JSON</button>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function parseSourceId(sourceId) {
+            let [prefix, bPart] = sourceId.rsplit('/B', 1);
+            let prefixParts = prefix.split('_');
+            let seqNum = parseInt(prefixParts[prefixParts.length - 1]);
+            let [bNum, tNum] = bPart.split('_').map(Number);
+            return [prefixParts.slice(0, -1), seqNum, bNum, tNum];
+        }
+
+        function generateJSON() {
+            const numOfPecs = parseInt(document.getElementById('numPecs').value);
+            const startSourceId = document.getElementById('sourceId').value;
+            const horizontal = document.getElementById('horizontal').checked;
+            const up = document.getElementById('up').checked;
+
+            let result = [];
+            let [prefixParts, seqNum, currentB, currentNumber] = parseSourceId(startSourceId);
+            let basePrefix = prefixParts.join('_');
+
+            for (let i = 0; i < numOfPecs; i++) {
+                let currentSourceId = `${basePrefix}_${String(seqNum).padStart(2, '0')}/B${currentB}_${currentNumber}`;
+                let distanceMultiplier = (i * 0.0058);
+
+                let position;
+                if (horizontal) {
+                    position = {
+                        x: 0.1636 + distanceMultiplier,
+                        y: 0.1,
+                        rotate: {
+                            angle: "270deg"
+                        },
+                        height: 0.0093,
+                        width: 0.0151
+                    };
+                } else if (up) {
+                    position = {
+                        x: 0.1636,
+                        y: 0.5 - distanceMultiplier,
+                        rotate: {
+                            angle: "0deg"
+                        },
+                        height: 0.0093,
+                        width: 0.0151
+                    };
+                } else {
+                    position = {
+                        x: 0.1636,
+                        y: 0.5 + distanceMultiplier,
+                        rotate: {
+                            angle: "0deg"
+                        },
+                        height: 0.0093,
+                        width: 0.0151
+                    };
+                }
+
+                let entry = {
+                    type: "ia.display.view",
+                    version: 0,
+                    props: {
+                        path: "Symbol-Views/Equipment-Views/Photoeye",
+                        params: {
+                            forceFaultStatus: null,
+                            forceRunningStatus: null,
+                            tagProps: [
+                                currentSourceId,
+                                "value",
+                                "value",
+                                "value",
+                                "value",
+                                "value",
+                                "value",
+                                "value",
+                                "value",
+                                "value"
+                            ]
+                        }
+                    },
+                    meta: {
+                        name: currentSourceId.replace('/', '_')
+                    },
+                    position: position,
+                    custom: {}
+                };
+
+                result.push(entry);
+
+                currentNumber += 1;
+                if (currentNumber >= 8) {
+                    currentNumber = 0;
+                    currentB += 1;
+                }
+                seqNum += 1;
+            }
+
+            document.getElementById('output').textContent = JSON.stringify(result, null, 2);
+        }
+
+        // Add string prototype for rsplit functionality
+        String.prototype.rsplit = function(sep, maxsplit) {
+            let split = this.split(sep);
+            return maxsplit ? [split.slice(0, -maxsplit).join(sep)].concat(split.slice(-maxsplit)) : split;
+        }
+    </script>
+</body>
+</html>
